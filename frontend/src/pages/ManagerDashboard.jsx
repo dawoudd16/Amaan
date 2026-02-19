@@ -11,6 +11,30 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebaseClient';
 import { authenticatedFetch } from '../utils/api';
 
+const ACTION_LABELS = {
+  REQUEST_CREATED:    'Request created',
+  STATUS_CHANGED:     'Status changed',
+  NOTES_UPDATED:      'Notes updated',
+  REMINDER_CONFIRMED: 'Customer reminded (call)',
+  REQUEST_REOPENED:   'Request reopened',
+  REVIEW_APPROVED:    'Approved by manager/agent',
+  REVIEW_REJECTED:    'Rejected — customer must re-upload',
+  REQUEST_REASSIGNED: 'Reassigned to another agent',
+  CUSTOMER_SUBMITTED: 'Customer submitted documents'
+};
+
+const ACTION_ICONS = {
+  REQUEST_CREATED:    '🆕',
+  STATUS_CHANGED:     '🔄',
+  NOTES_UPDATED:      '📝',
+  REMINDER_CONFIRMED: '📞',
+  REQUEST_REOPENED:   '🔓',
+  REVIEW_APPROVED:    '✅',
+  REVIEW_REJECTED:    '❌',
+  REQUEST_REASSIGNED: '↩️',
+  CUSTOMER_SUBMITTED: '📤'
+};
+
 const STATUS_COLORS = {
   OPEN:        { bg: '#d1ecf1', color: '#0c5460' },
   IN_PROGRESS: { bg: '#fff3cd', color: '#856404' },
@@ -74,6 +98,8 @@ function ManagerDashboard() {
   const [rejectedDocTypes, setRejectedDocTypes] = useState([]);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState(null);
+  const [requestHistory, setRequestHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const navigate = useNavigate();
 
   const loadKPIs = async () => {
@@ -127,6 +153,19 @@ function ManagerDashboard() {
       setReassignError(err.message);
     } finally {
       setReassigning(false);
+    }
+  };
+
+  const loadRequestHistory = async (requestId) => {
+    setHistoryLoading(true);
+    setRequestHistory([]);
+    try {
+      const data = await authenticatedFetch(`/api/manager/requests/${requestId}/audit`);
+      setRequestHistory(data.auditLogs || []);
+    } catch {
+      setRequestHistory([]);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -185,12 +224,20 @@ function ManagerDashboard() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ margin: 0 }}>Manager Dashboard</h1>
-        <button
-          onClick={handleLogout}
-          style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          Logout
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => navigate('/manager/activity')}
+            style={{ padding: '8px 16px', backgroundColor: '#fff', border: '1px solid #ced4da', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', color: '#495057', fontWeight: '500' }}
+          >
+            Activity Log
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{ padding: '8px 16px', backgroundColor: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -302,7 +349,7 @@ function ManagerDashboard() {
                 ) : filteredRequests.map((r, index) => (
                   <tr
                     key={r.id}
-                    onClick={() => { setSelected(r); setNewAgentId(''); setReassignError(null); setReviewDecision(''); setReviewComment(''); setRejectedDocTypes([]); setReviewError(null); }}
+                    onClick={() => { setSelected(r); setNewAgentId(''); setReassignError(null); setReviewDecision(''); setReviewComment(''); setRejectedDocTypes([]); setReviewError(null); loadRequestHistory(r.id); }}
                     style={{
                       borderBottom: '1px solid #dee2e6',
                       cursor: 'pointer',
@@ -458,6 +505,40 @@ function ManagerDashboard() {
                 </button>
               </div>
             )}
+
+            {/* History */}
+            <div style={{ paddingTop: '12px', borderTop: '1px solid #dee2e6', marginBottom: '16px' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#6c757d' }}>HISTORY</p>
+              {historyLoading ? (
+                <p style={{ fontSize: '13px', color: '#6c757d' }}>Loading…</p>
+              ) : requestHistory.length === 0 ? (
+                <p style={{ fontSize: '13px', color: '#adb5bd' }}>No history yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {requestHistory.map(log => (
+                    <div key={log.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>
+                        {ACTION_ICONS[log.action] || '📋'}
+                      </span>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#212529' }}>
+                          {ACTION_LABELS[log.action] || log.action}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                          {formatDate(log.timestamp)}
+                          {log.metadata?.comment && (
+                            <span style={{ marginLeft: '6px', fontStyle: 'italic' }}>— "{log.metadata.comment}"</span>
+                          )}
+                          {log.metadata?.newAgentName && (
+                            <span style={{ marginLeft: '6px' }}>→ {log.metadata.newAgentName}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Reassign */}
             <div style={{ paddingTop: '12px', borderTop: '1px solid #dee2e6' }}>

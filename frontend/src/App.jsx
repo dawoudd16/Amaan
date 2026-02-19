@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import CustomerPortal from './pages/CustomerPortal';
 import TeleSalesDashboard from './pages/TeleSalesDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
+import ActivityLog from './pages/ActivityLog';
 
 function App() {
   const [user, setUser] = React.useState(null);
@@ -52,9 +53,13 @@ function App() {
           path="/telesales" 
           element={user ? <TeleSalesDashboard /> : <Navigate to="/login" />} 
         />
-        <Route 
-          path="/manager" 
-          element={user ? <ManagerDashboard /> : <Navigate to="/login" />} 
+        <Route
+          path="/manager"
+          element={user ? <ManagerDashboard /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/manager/activity"
+          element={user ? <ActivityLog /> : <Navigate to="/login" />}
         />
         
         {/* Default redirect */}

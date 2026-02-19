@@ -33,6 +33,9 @@ router.post('/requests/:id/review', managerController.reviewRequest);
 // POST /api/manager/requests/:id/reopen
 router.post('/requests/:id/reopen', managerController.reopenRequest);
 
+// GET /api/manager/activity  (global activity feed)
+router.get('/activity', managerController.getActivityLog);
+
 // GET /api/manager/requests/:id/audit
 router.get('/requests/:id/audit', managerController.getAuditLog);
 

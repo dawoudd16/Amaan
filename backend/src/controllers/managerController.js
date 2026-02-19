@@ -196,6 +196,45 @@ async function reopenRequest(req, res) {
 }
 
 /**
+ * Get global activity log (all recent actions across all requests)
+ * GET /api/manager/activity
+ */
+async function getActivityLog(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const logs = await auditLogRepository.getAllAuditLogs(limit);
+
+    // Enrich with request numbers and actor names
+    const requestIds = [...new Set(logs.map(l => l.requestId).filter(Boolean))];
+    const actorIds   = [...new Set(logs.map(l => l.actorId).filter(Boolean))];
+
+    const [requests, actors] = await Promise.all([
+      Promise.all(requestIds.map(id => requestRepository.getRequestById(id).catch(() => null))),
+      Promise.all(actorIds.map(id => userRepository.getUserById(id).catch(() => null)))
+    ]);
+
+    const requestMap = {};
+    requestIds.forEach((id, i) => { if (requests[i]) requestMap[id] = requests[i]; });
+
+    const actorMap = {};
+    actorIds.forEach((id, i) => { if (actors[i]) actorMap[id] = actors[i]; });
+
+    const enriched = logs.map(log => ({
+      ...log,
+      actorName: actorMap[log.actorId]?.name || (log.actorId ? log.actorId.slice(0, 8) + '…' : 'System'),
+      requestNumber: requestMap[log.requestId]?.requestNumber || null,
+      customerName: requestMap[log.requestId]?.customerName || null,
+      timestamp: log.timestamp?.toDate ? log.timestamp.toDate().toISOString() : log.timestamp
+    }));
+
+    res.json({ logs: enriched });
+  } catch (error) {
+    console.error('Error getting activity log:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+}
+
+/**
  * Get audit log for a request
  * GET /api/manager/requests/:id/audit
  */
@@ -206,20 +245,26 @@ async function getAuditLog(req, res) {
     // Verify request exists
     const request = await requestRepository.getRequestById(id);
     if (!request) {
-      return res.status(404).json({ 
-        error: 'Not Found', 
-        message: 'Request not found' 
+      return res.status(404).json({
+        error: 'Not Found',
+        message: 'Request not found'
       });
     }
 
     const auditLogs = await auditLogRepository.getAuditLogsByRequestId(id);
 
-    res.json({ auditLogs });
+    // Normalise timestamps
+    const normalised = auditLogs.map(log => ({
+      ...log,
+      timestamp: log.timestamp?.toDate ? log.timestamp.toDate().toISOString() : log.timestamp
+    }));
+
+    res.json({ auditLogs: normalised });
   } catch (error) {
     console.error('Error getting audit log:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: error.message 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message
     });
   }
 }
@@ -231,6 +276,7 @@ module.exports = {
   reassignRequest,
   reviewRequest,
   reopenRequest,
-  getAuditLog
+  getAuditLog,
+  getActivityLog
 };
 

@@ -38,13 +38,27 @@ async function createAuditLog(logData) {
 async function getAuditLogsByRequestId(requestId) {
   const snapshot = await db.collection('auditLogs')
     .where('requestId', '==', requestId)
-    .orderBy('timestamp', 'desc')
     .get();
-  
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+
+  const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  logs.sort((a, b) => {
+    const ta = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
+    const tb = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
+    return tb - ta;
+  });
+  return logs;
+}
+
+/**
+ * Get recent audit logs across all requests (global activity feed)
+ */
+async function getAllAuditLogs(limit = 100) {
+  const snapshot = await db.collection('auditLogs')
+    .orderBy('timestamp', 'desc')
+    .limit(limit)
+    .get();
+
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 /**
@@ -65,6 +79,7 @@ async function getAuditLogsByActorId(actorId) {
 module.exports = {
   createAuditLog,
   getAuditLogsByRequestId,
-  getAuditLogsByActorId
+  getAuditLogsByActorId,
+  getAllAuditLogs
 };
 
