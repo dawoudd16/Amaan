@@ -35,25 +35,6 @@ function RequestDetailPanel({ request, onUpdate }) {
     setNotes(request.notes || '');
   }, [request]);
 
-  const handleStatusChange = async (newStatus) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const updated = await authenticatedFetch(`/api/telesales/requests/${request.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: newStatus })
-      });
-      // Reload full request details instead of going back
-      const details = await authenticatedFetch(`/api/telesales/requests/${request.id}`);
-      setCurrentRequest(details.request);
-      if (onUpdate) onUpdate(); // Still notify parent to refresh list
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleNotesUpdate = async () => {
     setLoading(true);
     setError(null);
@@ -593,26 +574,6 @@ function RequestDetailPanel({ request, onUpdate }) {
           </button>
         ) : (
           <>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Change Status:</label>
-              <select
-                value={req.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                disabled={loading}
-                style={{
-                  padding: '8px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '4px',
-                  marginRight: '10px'
-                }}
-              >
-                <option value="OPEN">OPEN</option>
-                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                <option value="SUBMITTED">SUBMITTED</option>
-                <option value="COMPLETED">COMPLETED</option>
-              </select>
-            </div>
-
             {(req.needsReminderLevel === 1 || req.needsReminderLevel === 2) && (
               <button
                 onClick={handleReminderConfirmed}

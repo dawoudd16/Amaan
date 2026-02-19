@@ -69,6 +69,11 @@ function ManagerDashboard() {
   const [newAgentId, setNewAgentId] = useState('');
   const [reassigning, setReassigning] = useState(false);
   const [reassignError, setReassignError] = useState(null);
+  const [reviewDecision, setReviewDecision] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [rejectedDocTypes, setRejectedDocTypes] = useState([]);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
   const navigate = useNavigate();
 
   const loadKPIs = async () => {
@@ -122,6 +127,32 @@ function ManagerDashboard() {
       setReassignError(err.message);
     } finally {
       setReassigning(false);
+    }
+  };
+
+  const handleReview = async () => {
+    if (!reviewDecision) return;
+    if (reviewDecision === 'REJECT' && rejectedDocTypes.length === 0) return;
+    setReviewing(true);
+    setReviewError(null);
+    try {
+      await authenticatedFetch(`/api/manager/requests/${selected.id}/review`, {
+        method: 'POST',
+        body: JSON.stringify({
+          decision: reviewDecision,
+          comment: reviewComment,
+          rejectedDocumentTypes: reviewDecision === 'REJECT' ? rejectedDocTypes : []
+        })
+      });
+      setReviewDecision('');
+      setReviewComment('');
+      setRejectedDocTypes([]);
+      setSelected(null);
+      await Promise.all([loadKPIs(), loadRequests(filterStatus, filterAgentId)]);
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewing(false);
     }
   };
 
@@ -271,7 +302,7 @@ function ManagerDashboard() {
                 ) : filteredRequests.map((r, index) => (
                   <tr
                     key={r.id}
-                    onClick={() => { setSelected(r); setNewAgentId(''); setReassignError(null); }}
+                    onClick={() => { setSelected(r); setNewAgentId(''); setReassignError(null); setReviewDecision(''); setReviewComment(''); setRejectedDocTypes([]); setReviewError(null); }}
                     style={{
                       borderBottom: '1px solid #dee2e6',
                       cursor: 'pointer',
@@ -354,6 +385,79 @@ function ManagerDashboard() {
               {selected.vehicleId && <p style={{ margin: '0 0 4px', fontSize: '14px' }}><strong>Vehicle ID:</strong> {selected.vehicleId}</p>}
               {selected.notes && <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#495057' }}><strong>Notes:</strong> {selected.notes}</p>}
             </div>
+
+            {/* Review — only for SUBMITTED + PENDING */}
+            {selected.status === 'SUBMITTED' && selected.reviewStatus === 'PENDING' && (
+              <div style={{ marginBottom: '16px', paddingTop: '12px', borderTop: '1px solid #dee2e6' }}>
+                <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#6c757d' }}>REVIEW REQUEST</p>
+
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '10px' }}>
+                  <label style={{ cursor: 'pointer', fontSize: '14px' }}>
+                    <input type="radio" name="mgr-review" value="APPROVE"
+                      checked={reviewDecision === 'APPROVE'}
+                      onChange={() => { setReviewDecision('APPROVE'); setRejectedDocTypes([]); }}
+                      style={{ marginRight: '6px' }}
+                    />
+                    Approve
+                  </label>
+                  <label style={{ cursor: 'pointer', fontSize: '14px' }}>
+                    <input type="radio" name="mgr-review" value="REJECT"
+                      checked={reviewDecision === 'REJECT'}
+                      onChange={() => setReviewDecision('REJECT')}
+                      style={{ marginRight: '6px' }}
+                    />
+                    Reject
+                  </label>
+                </div>
+
+                {reviewDecision === 'REJECT' && (
+                  <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
+                    <p style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: '600' }}>Documents to re-upload: <span style={{ color: 'red' }}>*</span></p>
+                    {['ID', 'LICENCE', 'PROOF_OF_ADDRESS', 'BANK_STATEMENT'].map(doc => (
+                      <label key={doc} style={{ display: 'block', fontSize: '13px', marginBottom: '4px', cursor: 'pointer' }}>
+                        <input type="checkbox"
+                          checked={rejectedDocTypes.includes(doc)}
+                          onChange={e => setRejectedDocTypes(prev =>
+                            e.target.checked ? [...prev, doc] : prev.filter(t => t !== doc)
+                          )}
+                          style={{ marginRight: '6px' }}
+                        />
+                        {doc.replace(/_/g, ' ')}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                <textarea
+                  value={reviewComment}
+                  onChange={e => setReviewComment(e.target.value)}
+                  rows="2"
+                  placeholder={reviewDecision === 'REJECT' ? 'Explain what needs fixing… (required)' : 'Optional comment'}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px', boxSizing: 'border-box', marginBottom: '8px', resize: 'vertical' }}
+                />
+
+                {reviewError && <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#dc3545' }}>{reviewError}</p>}
+
+                <button
+                  onClick={handleReview}
+                  disabled={!reviewDecision || reviewing || (reviewDecision === 'REJECT' && rejectedDocTypes.length === 0) || (reviewDecision === 'REJECT' && !reviewComment)}
+                  style={{
+                    width: '100%',
+                    padding: '9px',
+                    backgroundColor: reviewDecision === 'REJECT' ? '#dc3545' : reviewDecision === 'APPROVE' ? '#28a745' : '#6c757d',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    opacity: (!reviewDecision || reviewing) ? 0.6 : 1
+                  }}
+                >
+                  {reviewing ? 'Submitting…' : reviewDecision === 'REJECT' ? 'Confirm Rejection' : reviewDecision === 'APPROVE' ? 'Confirm Approval' : 'Select a decision'}
+                </button>
+              </div>
+            )}
 
             {/* Reassign */}
             <div style={{ paddingTop: '12px', borderTop: '1px solid #dee2e6' }}>

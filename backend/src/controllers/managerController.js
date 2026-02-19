@@ -145,6 +145,32 @@ async function listAgents(req, res) {
 }
 
 /**
+ * Review request (Approve or Reject) — same logic as Tele-Sales but for managers
+ * POST /api/manager/requests/:id/review
+ */
+async function reviewRequest(req, res) {
+  try {
+    const { id } = req.params;
+    const { decision, comment, rejectedDocumentTypes } = req.body;
+    const managerId = req.user.uid;
+    const actorIp = req.ip || req.connection.remoteAddress;
+
+    if (!decision || !['APPROVE', 'REJECT'].includes(decision)) {
+      return res.status(400).json({ error: 'Bad Request', message: 'decision must be APPROVE or REJECT' });
+    }
+    if (decision === 'REJECT' && (!rejectedDocumentTypes || rejectedDocumentTypes.length === 0)) {
+      return res.status(400).json({ error: 'Bad Request', message: 'At least one document must be selected for the customer to re-upload' });
+    }
+
+    const updatedRequest = await requestService.reviewRequest(id, decision, comment, managerId, actorIp, rejectedDocumentTypes || []);
+    res.json({ message: 'Request reviewed successfully', request: updatedRequest });
+  } catch (error) {
+    console.error('Error reviewing request:', error);
+    res.status(400).json({ error: 'Bad Request', message: error.message });
+  }
+}
+
+/**
  * Reopen expired request (same as Tele-Sales)
  * POST /api/manager/requests/:id/reopen
  */
@@ -203,6 +229,7 @@ module.exports = {
   listRequests,
   listAgents,
   reassignRequest,
+  reviewRequest,
   reopenRequest,
   getAuditLog
 };

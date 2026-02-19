@@ -27,6 +27,9 @@ router.get('/agents', managerController.listAgents);
 // POST /api/manager/requests/:id/reassign
 router.post('/requests/:id/reassign', managerController.reassignRequest);
 
+// POST /api/manager/requests/:id/review
+router.post('/requests/:id/review', managerController.reviewRequest);
+
 // POST /api/manager/requests/:id/reopen
 router.post('/requests/:id/reopen', managerController.reopenRequest);
 
