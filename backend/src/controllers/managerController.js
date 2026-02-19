@@ -108,6 +108,7 @@ async function reassignRequest(req, res) {
     }
 
     const oldAgentId = request.agentId;
+    const oldAgent = oldAgentId ? await userRepository.getUserById(oldAgentId).catch(() => null) : null;
 
     await requestRepository.updateRequest(id, { agentId: newAgentId });
 
@@ -116,7 +117,12 @@ async function reassignRequest(req, res) {
       action: 'REQUEST_REASSIGNED',
       requestId: id,
       ip: actorIp,
-      metadata: { oldAgentId, newAgentId, newAgentName: newAgent.name }
+      metadata: {
+        oldAgentId,
+        oldAgentName: oldAgent?.name || null,
+        newAgentId,
+        newAgentName: newAgent.name
+      }
     });
 
     const updatedRequest = await requestRepository.getRequestById(id);

@@ -529,8 +529,10 @@ function ManagerDashboard() {
                           {log.metadata?.comment && (
                             <span style={{ marginLeft: '6px', fontStyle: 'italic' }}>— "{log.metadata.comment}"</span>
                           )}
-                          {log.metadata?.newAgentName && (
-                            <span style={{ marginLeft: '6px' }}>→ {log.metadata.newAgentName}</span>
+                          {log.action === 'REQUEST_REASSIGNED' && log.metadata?.newAgentName && (
+                            <span style={{ marginLeft: '6px' }}>
+                              {log.metadata.oldAgentName ? `${log.metadata.oldAgentName} → ` : ''}{log.metadata.newAgentName}
+                            </span>
                           )}
                         </div>
                       </div>

@@ -205,9 +205,12 @@ function ActivityLog() {
                     "{log.metadata.comment}"
                   </div>
                 )}
-                {log.metadata?.newAgentName && (
+                {log.action === 'REQUEST_REASSIGNED' && log.metadata?.newAgentName && (
                   <div style={{ fontSize: '12px', color: '#868e96', marginTop: '4px' }}>
-                    Assigned to: {log.metadata.newAgentName}
+                    {log.metadata.oldAgentName
+                      ? <><strong>From:</strong> {log.metadata.oldAgentName} &nbsp;→&nbsp; <strong>To:</strong> {log.metadata.newAgentName}</>
+                      : <><strong>Assigned to:</strong> {log.metadata.newAgentName}</>
+                    }
                   </div>
                 )}
                 {log.metadata?.rejectedDocumentTypes?.length > 0 && (
