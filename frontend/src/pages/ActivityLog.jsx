@@ -66,7 +66,7 @@ function ActivityLog() {
 
   useEffect(() => {
     authenticatedFetch('/api/manager/activity?limit=200')
-      .then(data => setLogs(data.logs || []))
+      .then(data => setLogs((data.logs || []).filter(l => l.action !== 'CUSTOMER_UPLOADED_DOCUMENT')))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);

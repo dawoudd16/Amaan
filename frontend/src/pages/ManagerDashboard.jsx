@@ -515,7 +515,7 @@ function ManagerDashboard() {
                 <p style={{ fontSize: '13px', color: '#adb5bd' }}>No history yet.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {requestHistory.map(log => (
+                  {requestHistory.filter(log => log.action !== 'CUSTOMER_UPLOADED_DOCUMENT').map(log => (
                     <div key={log.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                       <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>
                         {ACTION_ICONS[log.action] || '📋'}
