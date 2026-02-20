@@ -197,7 +197,12 @@ function ManagerDashboard() {
 
   const formatDate = (ts) => {
     if (!ts) return 'N/A';
-    try { return new Date(ts).toLocaleDateString(); } catch { return 'N/A'; }
+    try {
+      return new Date(ts).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    } catch { return 'N/A'; }
   };
 
   const getAgentName = (agentId) => {
