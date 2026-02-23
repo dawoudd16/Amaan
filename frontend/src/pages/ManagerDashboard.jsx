@@ -100,6 +100,7 @@ function ManagerDashboard() {
   const [reviewError, setReviewError] = useState(null);
   const [requestHistory, setRequestHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('requests');
   const navigate = useNavigate();
 
   const loadKPIs = async () => {
@@ -128,6 +129,26 @@ function ManagerDashboard() {
 
   const handleApplyFilters = async () => {
     await loadRequests(filterStatus, filterAgentId);
+  };
+
+  const handleSwitchTab = async (tab) => {
+    setActiveTab(tab);
+    setSelected(null);
+    if (tab === 'agent-stats') {
+      // Always show all requests so stats are complete
+      setFilterStatus('');
+      setFilterAgentId('');
+      setSearchTerm('');
+      await loadRequests('', '');
+    }
+  };
+
+  const handleAgentRowClick = (agentId) => {
+    setActiveTab('requests');
+    setFilterAgentId(agentId);
+    setFilterStatus('');
+    setSearchTerm('');
+    loadRequests('', agentId);
   };
 
   const handleLogout = async () => {
@@ -214,6 +235,21 @@ function ManagerDashboard() {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
   }
 
+  const agentStats = agents.map(agent => {
+    const ar = requests.filter(r => r.agentId === agent.id);
+    return {
+      ...agent,
+      total:      ar.length,
+      open:       ar.filter(r => r.status === 'OPEN').length,
+      inProgress: ar.filter(r => r.status === 'IN_PROGRESS').length,
+      submitted:  ar.filter(r => r.status === 'SUBMITTED').length,
+      approved:   ar.filter(r => r.reviewStatus === 'APPROVED').length,
+      rejected:   ar.filter(r => r.reviewStatus === 'REJECTED').length,
+      completed:  ar.filter(r => r.status === 'COMPLETED').length,
+      expired:    ar.filter(r => r.status === 'EXPIRED').length,
+    };
+  }).sort((a, b) => b.total - a.total);
+
   const term = searchTerm.toLowerCase();
   const filteredRequests = term
     ? requests.filter(r =>
@@ -258,7 +294,71 @@ function ManagerDashboard() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: '2px solid #dee2e6' }}>
+        {[['requests', 'Requests'], ['agent-stats', 'Agent Stats']].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => handleSwitchTab(key)}
+            style={{
+              padding: '9px 20px',
+              border: 'none',
+              borderBottom: activeTab === key ? '3px solid #007bff' : '3px solid transparent',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeTab === key ? '600' : '400',
+              color: activeTab === key ? '#007bff' : '#6c757d',
+              marginBottom: '-2px'
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Agent Stats Tab */}
+      {activeTab === 'agent-stats' && (
+        <div style={{ backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f1f3f5', borderBottom: '2px solid #dee2e6' }}>
+                {['Agent', 'Total', 'Open', 'In Progress', 'Submitted', 'Approved', 'Rejected', 'Completed', 'Expired'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Agent' ? 'left' : 'center', fontWeight: '600', fontSize: '12px', color: '#495057', textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {agentStats.length === 0 ? (
+                <tr><td colSpan="9" style={{ padding: '30px', textAlign: 'center', color: '#6c757d' }}>No agents found.</td></tr>
+              ) : agentStats.map((a, i) => (
+                <tr
+                  key={a.id}
+                  onClick={() => handleAgentRowClick(a.id)}
+                  style={{ borderBottom: '1px solid #dee2e6', cursor: 'pointer', backgroundColor: i % 2 === 0 ? '#fff' : '#f8f9fa' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e8f4fd'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = i % 2 === 0 ? '#fff' : '#f8f9fa'}
+                >
+                  <td style={{ padding: '13px 16px', fontWeight: '600', color: '#212529' }}>{a.name}</td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center', fontWeight: '600', color: '#495057' }}>{a.total}</td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: '#0c5460', fontWeight: a.open > 0 ? '600' : '400' }}>{a.open}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: '#856404', fontWeight: a.inProgress > 0 ? '600' : '400' }}>{a.inProgress}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: '#004085', fontWeight: a.submitted > 0 ? '600' : '400' }}>{a.submitted}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: '#155724', fontWeight: a.approved > 0 ? '600' : '400' }}>{a.approved}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: a.rejected > 0 ? '#dc3545' : '#6c757d', fontWeight: a.rejected > 0 ? '700' : '400' }}>{a.rejected}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: '#155724', fontWeight: a.completed > 0 ? '600' : '400' }}>{a.completed}</span></td>
+                  <td style={{ padding: '13px 16px', textAlign: 'center' }}><span style={{ color: a.expired > 0 ? '#721c24' : '#6c757d', fontWeight: a.expired > 0 ? '600' : '400' }}>{a.expired}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ padding: '10px 16px', fontSize: '12px', color: '#adb5bd', borderTop: '1px solid #f1f3f5' }}>
+            Click a row to view that agent's requests
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'requests' && <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
 
         {/* Left: filters + table */}
         <div style={{ flex: 1 }}>
@@ -583,7 +683,7 @@ function ManagerDashboard() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
