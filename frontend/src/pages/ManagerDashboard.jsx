@@ -101,6 +101,9 @@ function ManagerDashboard() {
   const [requestHistory, setRequestHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('requests');
+  const [statsPeriod, setStatsPeriod] = useState('all');
+  const [statsMonth, setStatsMonth] = useState(new Date().getMonth());
+  const [statsYear, setStatsYear]   = useState(new Date().getFullYear());
   const navigate = useNavigate();
 
   const loadKPIs = async () => {
@@ -149,6 +152,23 @@ function ManagerDashboard() {
     setFilterStatus('');
     setSearchTerm('');
     loadRequests('', agentId);
+  };
+
+  const getStatsDateRange = () => {
+    const now = new Date();
+    if (statsPeriod === 'this-month')
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: now };
+    if (statsPeriod === 'last-month')
+      return { from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+               to:   new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59) };
+    if (statsPeriod === 'last-3-months')
+      return { from: new Date(now.getFullYear(), now.getMonth() - 3, 1), to: now };
+    if (statsPeriod === 'this-year')
+      return { from: new Date(now.getFullYear(), 0, 1), to: now };
+    if (statsPeriod === 'custom')
+      return { from: new Date(statsYear, statsMonth, 1),
+               to:   new Date(statsYear, statsMonth + 1, 0, 23, 59, 59) };
+    return null; // all time
   };
 
   const handleLogout = async () => {
@@ -235,8 +255,16 @@ function ManagerDashboard() {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
   }
 
+  const statsRange = getStatsDateRange();
+  const statsRequests = statsRange
+    ? requests.filter(r => {
+        const d = new Date(r.createdAt);
+        return d >= statsRange.from && d <= statsRange.to;
+      })
+    : requests;
+
   const agentStats = agents.map(agent => {
-    const ar = requests.filter(r => r.agentId === agent.id);
+    const ar = statsRequests.filter(r => r.agentId === agent.id);
     return {
       ...agent,
       total:      ar.length,
@@ -319,6 +347,63 @@ function ManagerDashboard() {
 
       {/* Agent Stats Tab */}
       {activeTab === 'agent-stats' && (
+        <div>
+          {/* Date filter controls */}
+          <div style={{ backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.08)', padding: '14px 16px', marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              ['all',          'All Time'],
+              ['this-month',   'This Month'],
+              ['last-month',   'Last Month'],
+              ['last-3-months','Last 3 Months'],
+              ['this-year',    'This Year'],
+              ['custom',       'Custom Month'],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setStatsPeriod(key)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: statsPeriod === key ? '2px solid #007bff' : '1px solid #ced4da',
+                  backgroundColor: statsPeriod === key ? '#e8f4fd' : '#fff',
+                  color: statsPeriod === key ? '#007bff' : '#495057',
+                  fontWeight: statsPeriod === key ? '600' : '400',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {label}
+              </button>
+            ))}
+
+            {statsPeriod === 'custom' && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: '4px' }}>
+                <select
+                  value={statsMonth}
+                  onChange={e => setStatsMonth(Number(e.target.value))}
+                  style={{ padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
+                >
+                  {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={statsYear}
+                  onChange={e => setStatsYear(Number(e.target.value))}
+                  style={{ padding: '5px 8px', border: '1px solid #ced4da', borderRadius: '4px', fontSize: '13px' }}
+                >
+                  {Array.from({ length: new Date().getFullYear() - 2023 }, (_, i) => 2024 + i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#6c757d' }}>
+              {statsRequests.length} request{statsRequests.length !== 1 ? 's' : ''} in period
+            </span>
+          </div>
+
         <div style={{ backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
@@ -355,6 +440,7 @@ function ManagerDashboard() {
           <div style={{ padding: '10px 16px', fontSize: '12px', color: '#adb5bd', borderTop: '1px solid #f1f3f5' }}>
             Click a row to view that agent's requests
           </div>
+        </div>
         </div>
       )}
 
