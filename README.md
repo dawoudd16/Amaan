@@ -1,261 +1,113 @@
-# Customer Request Tracking System
+# Secure Customer Request Tracking System
 
-A secure, web-based system for car dealerships to manage customer document uploads and request tracking. Built with Node.js/Express backend and React frontend, using Firebase for authentication, database, and storage.
+A full-stack web application built to replace the unsafe practice of sharing sensitive customer documents over WhatsApp at car dealerships. Developed as a Final Year Project at the University of Southampton (COMP3200).
+
+## The Problem
+
+During an internship at Abdul Latif Jameel (Toyota), I observed that tele-sales agents were collecting customer documents — ID cards, driving licences, bank statements — through personal WhatsApp messages. These documents remained on agents' personal phones for weeks with no encryption, no audit trail, and no access control, violating PDPL (Saudi Arabia) and UK GDPR.
+
+## The Solution
+
+A secure, role-based web system with three portals:
+
+- **Customer Portal** — Customers receive a unique secure link and upload their documents without needing to create an account
+- **Tele-Sales Dashboard** — Agents create and manage requests, share secure links with customers, and approve or reject submitted documents
+- **Manager Dashboard** — Full oversight across all agents with filtering, reassignment, performance metrics, and a complete activity log
 
 ## Features
 
-### Version 1 (Current)
+- Token-based customer access (256-bit random tokens — no login required)
+- Real-time document upload progress (0–100%)
+- Automated 24-hour (yellow) and 48-hour (red) reminder badges
+- 6-day SLA expiry mechanism
+- Approve / reject workflow with mandatory comments
+- Request reassignment between agents with full audit trail
+- Agent performance statistics with date range filters
+- Global activity log with 9 action types, colour-coded and searchable
+- Role-based access control enforced server-side
+- Documents never exposed to the frontend — no file URLs accessible to users
+- Fully compliant with PDPL and UK GDPR
 
-- **Customer Portal**: Secure token-based access for customers to upload documents
-- **Tele-Sales Dashboard**: Full request management for sales agents
-- **Reminder System**: Automatic 24h and 48h reminders
-- **SLA Expiry**: Automatic expiration after 6 days
-- **Review Workflow**: Approve/reject requests with comments
-- **Audit Logging**: Complete audit trail of all actions
+## Tech Stack
 
-### Version 2 (Planned)
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, Vite |
+| Backend | Node.js, Express |
+| Database | Firebase Firestore |
+| Storage | Firebase Storage |
+| Auth | Firebase Authentication |
+| Scheduling | node-cron |
 
-- **Manager Dashboard**: KPIs, advanced filtering, reassignment
-- **External Partner API**: Read-only status queries for CRM integration
-
-## Architecture
-
-### Backend
-
-- **Framework**: Node.js + Express
-- **Database**: Firebase Firestore
-- **Storage**: Firebase Storage
-- **Authentication**: Firebase Admin SDK (for employee verification)
-- **Jobs**: node-cron for scheduled tasks
-
-### Frontend
-
-- **Framework**: React with Vite
-- **Routing**: React Router
-- **Authentication**: Firebase Web SDK (for employees)
-- **Styling**: Inline styles (can be upgraded to CSS modules or styled-components)
-
-## Project Structure
+## System Architecture
 
 ```
-/
-├── backend/
-│   ├── src/
-│   │   ├── routes/          # API route definitions
-│   │   ├── controllers/     # Request handlers
-│   │   ├── services/        # Business logic
-│   │   ├── repositories/    # Data access layer
-│   │   ├── jobs/            # Scheduled tasks
-│   │   ├── models/          # Data models
-│   │   ├── firebase.js      # Firebase Admin setup
-│   │   ├── authMiddleware.js # Auth verification
-│   │   ├── app.js           # Express app config
-│   │   └── server.js        # Server entry point
-│   ├── package.json
-│   └── .env.example
-│
-└── frontend/
-    ├── src/
-    │   ├── pages/           # Page components
-    │   ├── components/      # Reusable components
-    │   ├── utils/           # Utility functions
-    │   ├── firebaseClient.js # Firebase Web SDK setup
-    │   ├── App.jsx          # Main app component
-    │   └── main.jsx         # Entry point
-    ├── package.json
-    ├── vite.config.js
-    └── .env.example
+Frontend (React)
+├── /telesales       → Tele-Sales Agent Dashboard
+├── /customer/:token → Customer Portal
+└── /manager         → Manager Dashboard
+
+Backend (Node.js + Express)
+├── REST API
+├── Reminder Job (node-cron) — runs every hour
+└── SLA Expiry Job (node-cron) — runs every hour
+
+Firebase
+├── Firestore — requests, documents, audit logs
+├── Storage — uploaded customer files
+└── Auth — agent and manager authentication
 ```
 
-## Setup Instructions
+## Getting Started
 
 ### Prerequisites
-
-- Node.js (v16 or higher)
-- Firebase project with:
-  - Authentication enabled (Email/Password)
-  - Firestore database
-  - Storage bucket
-  - Service account key (for backend)
+- Node.js v18+
+- Firebase project with Firestore, Storage, and Authentication enabled
+- Firebase service account key
 
 ### Backend Setup
-
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Configure Firebase service account:
-     - Option 1: Download service account JSON from Firebase Console
-     - Set `FIREBASE_SERVICE_ACCOUNT_PATH` to the path of the JSON file
-     - Option 2: Set individual environment variables (see `.env.example`)
-
-4. Configure Firebase:
-   - Go to Firebase Console > Project Settings > Service Accounts
-   - Generate a new private key
-   - Save it securely and reference it in `.env`
-
-5. Start the server:
-   ```bash
-   npm start
-   # or for development with auto-reload:
-   npm run dev
-   ```
-
-   Server runs on `http://localhost:3001` by default.
+```bash
+cd backend
+npm install
+# Add your Firebase service account JSON to backend/
+# Create backend/.env with:
+# FIREBASE_SERVICE_ACCOUNT_PATH=./your-service-account.json
+# PORT=3001
+# FRONTEND_URL=http://localhost:5173
+node src/server.js
+```
 
 ### Frontend Setup
+```bash
+cd frontend
+npm install
+# Create frontend/.env with your Firebase web config:
+# VITE_FIREBASE_API_KEY=...
+# VITE_FIREBASE_AUTH_DOMAIN=...
+# VITE_FIREBASE_PROJECT_ID=...
+# VITE_FIREBASE_STORAGE_BUCKET=...
+# VITE_FIREBASE_MESSAGING_SENDER_ID=...
+# VITE_FIREBASE_APP_ID=...
+# VITE_API_URL=http://localhost:3001
+npm run dev
+```
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+## Testing
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+42 functional tests covering all system components — all passed.
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Get Firebase Web SDK config from Firebase Console:
-     - Go to Project Settings > General
-     - Scroll to "Your apps" section
-     - Copy the config values to `.env`
+| Component | Tests |
+|-----------|-------|
+| Customer Portal | 9 |
+| Tele-Sales Dashboard | 12 |
+| Manager Dashboard | 16 |
+| Security | 5 |
+| **Total** | **42** |
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+All 32 functional requirements implemented and verified.
 
-   Frontend runs on `http://localhost:5173` by default.
+## Author
 
-## Firebase Configuration
-
-### Firestore Collections
-
-The system uses the following collections:
-
-- **users**: Employee and customer user records
-- **requests**: Customer request records
-- **documents**: Uploaded document metadata
-- **auditLogs**: Audit trail of all actions
-
-### Initial User Setup
-
-To create a Tele-Sales agent:
-
-1. Create a user in Firebase Authentication (email/password)
-2. Create a corresponding document in Firestore `users` collection:
-   ```javascript
-   {
-     id: "<firebase-uid>",
-     name: "Agent Name",
-     email: "agent@example.com",
-     role: "agent",
-     createdAt: <timestamp>
-   }
-   ```
-
-For managers, set `role: "manager"`.
-
-## API Endpoints
-
-### Customer Endpoints (Public)
-
-- `GET /api/customer/requests/:token` - Get request by secure token
-- `POST /api/customer/requests/:id/documents` - Upload document
-- `POST /api/customer/requests/:id/submit` - Submit request
-
-### Tele-Sales Endpoints (Protected)
-
-- `POST /api/telesales/requests` - Create new request
-- `GET /api/telesales/requests` - List assigned requests
-- `GET /api/telesales/requests/:id` - Get request details
-- `PATCH /api/telesales/requests/:id` - Update request
-- `POST /api/telesales/requests/:id/reminded` - Mark reminder confirmed
-- `POST /api/telesales/requests/:id/reopen` - Reopen expired request
-- `POST /api/telesales/requests/:id/review` - Review request (approve/reject)
-
-### Manager Endpoints (Protected, Version 1: Stubbed)
-
-- `GET /api/manager/kpis` - Get KPIs
-- `GET /api/manager/requests` - List all requests (with filters)
-- `POST /api/manager/requests/:id/reassign` - Reassign request (v2)
-- `POST /api/manager/requests/:id/reopen` - Reopen expired request
-- `GET /api/manager/requests/:id/audit` - Get audit log
-
-### Partner Endpoints (Read-Only)
-
-- `GET /api/partner/requests/:id/status` - Get request status
-
-## Business Rules
-
-### Reminder System
-
-1. **First Reminder (24h)**: Triggered 24 hours after request creation
-   - Sets `needsReminderLevel = 1` (yellow badge)
-   - Only for OPEN, IN_PROGRESS, or SUBMITTED requests
-
-2. **Second Reminder (48h)**: Triggered 48 hours after agent confirms a reminder
-   - Sets `needsReminderLevel = 2` (red badge)
-   - Requires `lastReminderAt` to be set
-
-3. **Reminder Confirmation**: When agent clicks "I reminded the customer"
-   - Resets `needsReminderLevel = 0`
-   - Sets `lastReminderAt = now`
-
-### SLA Expiry
-
-- Requests expire after **6 days (144 hours)** from creation
-- Only applies to non-COMPLETED requests
-- Sets `status = "EXPIRED"` and `expiredAt = now`
-- Expired requests become read-only for customers
-- Can be reopened by Tele-Sales agents or Managers
-
-### Document Upload
-
-- Required documents: ID, Driving Licence, Proof of Address, Bank Statement
-- Completion percentage calculated automatically
-- Submit button only enabled when all documents are uploaded (100%)
-
-### Review Workflow
-
-- Only SUBMITTED requests can be reviewed
-- Approve: Sets `reviewStatus = "APPROVED"` (optional comment)
-- Reject: Sets `reviewStatus = "REJECTED"` (comment required)
-- Review feedback visible to customers in portal
-
-## Scheduled Jobs
-
-Two cron jobs run every hour:
-
-1. **Reminder Job** (`reminderJob.js`): Updates reminder levels
-2. **SLA Expiry Job** (`slaExpiryJob.js`): Expires old requests
-
-## Security
-
-- **Customer Access**: High-entropy secure tokens (unguessable)
-- **Employee Access**: Firebase Authentication with ID token verification
-- **Role-Based Access**: Agents only see their assigned requests
-- **HTTPS Required**: All endpoints should be served over HTTPS in production
-- **Audit Logging**: All sensitive actions are logged
-
-## Development Notes
-
-- The code is structured to be beginner-friendly with extensive comments
-- Business rules are clearly documented in comments
-- Version 2 features are stubbed but structured for easy extension
-- Manager dashboard and external partner API are placeholders
-
-## License
-
-This is a prototype system for educational/demonstration purposes.
-
+**Dawoud Aboalsaud**  
+BEng Software Engineering — University of Southampton  
+Supervisor: Leslie Carr | Examiner: Sasan Mahmoodi
