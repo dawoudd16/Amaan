@@ -138,7 +138,7 @@ function TeleSalesDashboard() {
     <div style={{ padding: '20px', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ margin: 0 }}>Tele-Sales Dashboard</h1>
+          <h1 style={{ margin: 0 }}>Amaan — Tele-Sales</h1>
           <p style={{ margin: '5px 0 0 0', color: '#6c757d', fontSize: '14px' }}>
             Welcome, <strong>{userName || 'Loading...'}</strong>
           </p>

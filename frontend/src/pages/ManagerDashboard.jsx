@@ -292,7 +292,7 @@ function ManagerDashboard() {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ margin: 0 }}>Manager Dashboard</h1>
+        <h1 style={{ margin: 0 }}>Amaan — Manager</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
             onClick={() => navigate('/manager/activity')}
