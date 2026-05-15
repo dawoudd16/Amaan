@@ -1,6 +1,6 @@
 # Amaan (أمان) — Secure Customer Request Tracking System
 
-A full-stack web application built to replace the unsafe practice of sharing sensitive customer documents over WhatsApp at car dealerships. Developed as a Final Year Project at the University of Southampton (COMP3200).
+A full-stack web application built to replace the unsafe practice of sharing sensitive customer documents over WhatsApp (Any unsafe way) at car dealerships. Developed as a Final Year Project at the University of Southampton.
 
 ## The Problem
 
